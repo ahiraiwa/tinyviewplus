@@ -19,6 +19,10 @@
 #define LAP_HEIGHT      LABEL_HEIGHT
 #define LAP_MARGIN_X    10
 #define LAP_MARGIN_Y    (10 + LABEL_MARGIN_Y + LAP_HEIGHT)
+// player image
+#define PLAYER_IMAGE_WIDTH_RATIO            0.125 // 選手画像の横幅をカメラ映像の横幅の何パーセントにするのかを表す値
+#define PLAYER_IMAGE_BOTTOM_MARGIN_RATIO    0.300 // 選手画像のカメラ映像の底部からカメラ映像の高さの何パーセントのマージンをとるのかを表す値
+#define PLAYER_COLOR_RECT_HEIGHT_RATIO      0.150 // 選手画像の上部に表示する選手カラーの資格の高さを選手画像の横幅の何パーセントにするのかを表す値
 // osc
 #define OSC_LISTEN_PORT 4000
 // help
@@ -44,6 +48,7 @@ void setWallParams();
 void setViewParams();
 void resetConfig();
 void recvOsc();
+void recvOscPlayer(int, ofxOscMessage);
 void recvOscCameraString(int, string, string);
 void recvOscCameraFloat(int, string, float);
 #ifdef FEATURE_SPEECH
@@ -52,6 +57,19 @@ void recvOscSpeech(string, string);
 void speakLap(int, float);
 void speakAny(string, string);
 #endif /* FEATURE_SPEECH */
+
+class playerColor {
+public:
+    int r;
+    int g;
+    int b;
+};
+
+class tvpPlayerImage {
+public:
+    ofImage image;
+    playerColor color;
+};
 
 class tvpCamView {
 public:
@@ -66,6 +84,7 @@ public:
     int lapPosX;
     int lapPosY;
     float lap;
+    tvpPlayerImage playerImage;
 };
 
 ofVideoGrabber grabber[CAMERA_MAXNUM];
@@ -150,6 +169,23 @@ void ofApp::draw(){
             ofSetColor(255, 255, 255);
             sout = ofToString("Lap:") + stream.str() + "s";
             myFont.drawString(sout, camView[i].lapPosX, camView[i].lapPosY);
+        }
+        // plyaerImage
+        if (camView[i].playerImage.image.isAllocated()) {
+            // 選手画像の表示
+            float playerImageRatio = camView[i].playerImage.image.getHeight() / camView[i].playerImage.image.getWidth();
+            int playerImageWidth = camView[i].width * PLAYER_IMAGE_WIDTH_RATIO;
+            int playerImageHeight = playerImageWidth * playerImageRatio;
+            int camViewHeight = camView[i].height / CAMERA_RATIO;
+            int posX = camView[i].posX + camView[i].width - playerImageWidth;
+            int posY = camView[i].posY + camViewHeight - camViewHeight * PLAYER_IMAGE_BOTTOM_MARGIN_RATIO;
+            camView[i].playerImage.image.draw(posX, posY, playerImageWidth, playerImageHeight);
+            
+            // 選手カラーの四角の表示
+            ofSetColor(camView[i].playerImage.color.r, camView[i].playerImage.color.g, camView[i].playerImage.color.b);
+            ofFill();
+            int imageColorRectHeight = playerImageHeight * PLAYER_COLOR_RECT_HEIGHT_RATIO;
+            ofDrawRectangle(posX, posY - imageColorRectHeight, playerImageWidth, imageColorRectHeight);
         }
     }
 }
@@ -445,10 +481,11 @@ void resetConfig() {
     }
     cameraNumVisible = cameraNum;
     setViewParams();
-    // camera label, laptime
+    // camera label, laptime, player image
     for (i = 0; i < cameraNum; i++) {
         camView[i].labelString = "Pilot" + ofToString(i + 1);
         camView[i].lap = 0;
+        camView[i].playerImage.image.clear();
     }
 #ifdef FEATURE_SPEECH
     // speech
@@ -477,6 +514,10 @@ void recvOsc() {
             // method
             method = ofToString(&addr[13]);
             // argument
+            if (method == "player") {
+                recvOscPlayer(camid, oscm);
+            }
+            
             if (oscm.getNumArgs() != 1) {
                 continue;
             }
@@ -509,6 +550,35 @@ void recvOsc() {
             }
         }
 #endif /* FEATURE_SPEECH */
+    }
+}
+
+//--------------------------------------------------------------
+void recvOscPlayer(int camid, ofxOscMessage oscm) {
+    int idx = camid - 1;
+
+    if (oscm.getNumArgs() == 5 &&
+        oscm.getArgType(0) == OFXOSC_TYPE_STRING &&
+        oscm.getArgType(1) == OFXOSC_TYPE_STRING &&
+        oscm.getArgType(2) == OFXOSC_TYPE_INT32 &&
+        oscm.getArgType(3) == OFXOSC_TYPE_INT32 &&
+        oscm.getArgType(4) == OFXOSC_TYPE_INT32 &&
+        oscm.getArgAsString(0) == "on") {
+            // オンであれば引数の選手IDとRGB指定を元に選手画像と選手カラーを設定
+            ostringstream oss;
+            oss << "players/" << oscm.getArgAsString(1) << ".png";
+            ofFile file;
+            if (file.doesFileExist(oss.str())) {
+                camView[idx].playerImage.image.load(oss.str());
+                camView[idx].playerImage.color.r = oscm.getArgAsInt32(2);
+                camView[idx].playerImage.color.g = oscm.getArgAsInt32(4);
+                camView[idx].playerImage.color.b = oscm.getArgAsInt32(4);
+            }
+    } else if (oscm.getNumArgs() > 1 &&
+               oscm.getArgType(0) == OFXOSC_TYPE_STRING  &&
+               oscm.getArgAsString(0) == "off") {
+        // オフであれば選手画像を削除
+        camView[idx].playerImage.image.clear();
     }
 }
 
