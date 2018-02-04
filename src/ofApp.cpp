@@ -571,7 +571,7 @@ void recvOscPlayer(int camid, ofxOscMessage oscm) {
             if (file.doesFileExist(oss.str())) {
                 camView[idx].playerImage.image.load(oss.str());
                 camView[idx].playerImage.color.r = oscm.getArgAsInt32(2);
-                camView[idx].playerImage.color.g = oscm.getArgAsInt32(4);
+                camView[idx].playerImage.color.g = oscm.getArgAsInt32(3);
                 camView[idx].playerImage.color.b = oscm.getArgAsInt32(4);
             }
     } else if (oscm.getNumArgs() > 1 &&
