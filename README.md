@@ -117,6 +117,22 @@ OSCプロトコルにより外部からの制御が可能です。UDP4000番ポ�
     - /v1/camera/3/laptime 128.64
 - [例]カメラ3のラップタイムをクリアする
     - /v1/camera/3/laptime 0
+    
+#### 選手カラーおよび選手画像の表示
+    /v1/camera/{id}/player {switch} {player_id} {color_r} {color_g} {color_b}
+    
+- パラメーター
+    - id ... 1～3の数値
+    - switch ... "on" または "off"
+    - player_id ... 選手ID。playersディレクトリ内の"選手ID.png"という画像を選手画像として表示。
+    - color_r ... 選手カラーのR(0-255)
+    - color_g ... 選手カラーのG(0-255)
+    - color_b ... 選手カラーのB(0-255)
+    
+- [例]カメラ1に選手IDp1のの選手画像を表示。選手カラーは青(R:0, G:0, B:255)。
+    - /v1/camera/1/display "on" "p1" 0, 0, 255
+- [例]カメラ1の選手画像を非表示。
+    - /v1/camera/1/display "off"
 
 #### 音声読み上げ(macOSのみ)
 /v1/speech/{language}/say {text}
