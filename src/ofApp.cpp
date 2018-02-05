@@ -20,6 +20,9 @@
 #define LAP_MARGIN_X    10
 #define LAP_MARGIN_Y    (10 + LABEL_MARGIN_Y + LAP_HEIGHT)
 // player image
+#define PLAYERS_PATH                       "players/"
+#define UNKNOWN_IMAGE_FILE_NAME            "unknown"
+#define IMAGE_FILE_EXT                     ".png"
 #define PLAYER_IMAGE_WIDTH_RATIO            0.125 // 選手画像の横幅をカメラ映像の横幅の何パーセントにするのかを表す値
 #define PLAYER_IMAGE_BOTTOM_MARGIN_RATIO    0.300 // 選手画像のカメラ映像の底部からカメラ映像の高さの何パーセントのマージンをとるのかを表す値
 #define PLAYER_COLOR_RECT_HEIGHT_RATIO      0.150 // 選手画像の上部に表示する選手カラーの資格の高さを選手画像の横幅の何パーセントにするのかを表す値
@@ -179,6 +182,7 @@ void ofApp::draw(){
             int camViewHeight = camView[i].height / CAMERA_RATIO;
             int posX = camView[i].posX + camView[i].width - playerImageWidth;
             int posY = camView[i].posY + camViewHeight - camViewHeight * PLAYER_IMAGE_BOTTOM_MARGIN_RATIO;
+            ofSetColor(255, 255, 255);
             camView[i].playerImage.image.draw(posX, posY, playerImageWidth, playerImageHeight);
             
             // 選手カラーの四角の表示
@@ -281,6 +285,27 @@ void bindCameras() {
                 camView[idx].visible = true;
                 camView[idx].labelString = "Pilot" + ofToString(idx + 1);
                 camView[idx].lap = 0;
+                ostringstream oss;
+                oss << PLAYERS_PATH << UNKNOWN_IMAGE_FILE_NAME << IMAGE_FILE_EXT;
+                ofFile file;
+                if (file.doesFileExist(oss.str())) {
+                    camView[idx].playerImage.image.load(oss.str());
+                    camView[idx].playerImage.color.r = 0;
+                    camView[idx].playerImage.color.g = 0;
+                    camView[idx].playerImage.color.b = 0;
+                    switch(cameraNum)
+                    {
+                        case 1:
+                            camView[idx].playerImage.color.r = 255;
+                            break;
+                        case 2:
+                            camView[idx].playerImage.color.g = 255;
+                            break;
+                        case 3:
+                            camView[idx].playerImage.color.b = 255;
+                            break;
+                    }
+                }
             }
             if (cameraNum == CAMERA_MAXNUM) {
                 break;
@@ -566,7 +591,7 @@ void recvOscPlayer(int camid, ofxOscMessage oscm) {
         oscm.getArgAsString(0) == "on") {
             // オンであれば引数の選手IDとRGB指定を元に選手画像と選手カラーを設定
             ostringstream oss;
-            oss << "players/" << oscm.getArgAsString(1) << ".png";
+            oss << PLAYERS_PATH << oscm.getArgAsString(1) << IMAGE_FILE_EXT;
             ofFile file;
             if (file.doesFileExist(oss.str())) {
                 camView[idx].playerImage.image.load(oss.str());
